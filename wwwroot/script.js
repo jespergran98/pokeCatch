@@ -126,7 +126,7 @@ function getPokemonRarity(pokemonId) {
 async function getRandomPokemon() {
     try {
         // Use a more focused range for better known Pokemon (Gen 1-4)
-        const randomId = Math.floor(Math.random() * 493) + 1;
+        const randomId = Math.floor(Math.random() * 1025) + 1;
         
         const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
         if (!response.ok) {

@@ -311,8 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const originalCatchPokemon = window.catchPokemon;
     if (typeof originalCatchPokemon === 'function') {
         window.catchPokemon = async function(pokemon, sprite) {
-            // Play success sound and Pokémon cry
-            soundManager.playUISound('catch_success');
+            // Only play Pokémon cry, remove the other sound effect
             if (pokemon && pokemon.collectorNumber) {
                 await soundManager.playPokemonCry(pokemon.collectorNumber);
             }
