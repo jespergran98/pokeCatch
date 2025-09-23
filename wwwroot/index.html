@@ -145,6 +145,34 @@
             </div>
         </div>
 
+        <!-- NEW: Release Confirmation Modal -->
+        <div id="release-modal" class="modal">
+            <div class="release-container">
+                <div class="release-title-bar">
+                    <h2>Release Pokémon</h2>
+                    <span class="close-release">&times;</span>
+                </div>
+                <div class="release-content">
+                    <div class="pokeball-container">
+                        <div class="pokeball-icon">
+                            <div class="pokeball-top"></div>
+                            <div class="pokeball-bottom"></div>
+                            <div class="pokeball-center"></div>
+                            <div class="pokeball-button"></div>
+                        </div>
+                    </div>
+                    <div class="release-text-container">
+                        <p id="release-text">Are you sure you want to release this Pokémon? This action cannot be undone!</p>
+                        <p id="release-pokemon-name" style="font-style: italic; color: #a8f5c4;"></p>
+                    </div>
+                    <div class="release-actions">
+                        <button class="action-btn confirm-release-btn">Confirm</button>
+                        <button class="action-btn cancel-release-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Enhanced catch notification -->
         <div id="catch-notification" class="catch-notification">
             <div class="notification-content">

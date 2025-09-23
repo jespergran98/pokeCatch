@@ -35,6 +35,20 @@ function setupEventListeners() {
     pokedexBtn.addEventListener('click', openPokedex);
     closeModal.addEventListener('click', closePokedex);
     
+    // Handle Enter and Escape keys for release modal
+    document.addEventListener('keydown', function(e) {
+        const releaseModal = document.getElementById('release-modal');
+        if (releaseModal.style.display === 'block') {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.querySelector('.confirm-release-btn').click();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                document.querySelector('.cancel-release-btn').click();
+            }
+        }
+    });
+    
     // Filter buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => setFilter(btn.dataset.filter));
@@ -652,25 +666,105 @@ function cancelEdit(pokemonId, originalName) {
 }
 
 async function deletePokemon(pokemonId) {
-    if (!confirm('Are you sure you want to release this Pokémon back into the wild? This action cannot be undone!')) {
-        return;
+    // Find the Pokémon to display its name
+    const pokemon = caughtPokemon.find(p => p.id === pokemonId);
+    if (!pokemon) return;
+
+    // Open the release confirmation modal
+    openReleaseModal(pokemonId, pokemon.name);
+}
+
+function openReleaseModal(pokemonId, pokemonName) {
+    const releaseModal = document.getElementById('release-modal');
+    const releaseText = document.getElementById('release-text');
+    const releasePokemonName = document.getElementById('release-pokemon-name');
+    const confirmBtn = document.querySelector('.confirm-release-btn');
+    const cancelBtn = document.querySelector('.cancel-release-btn');
+    
+    releaseText.textContent = 'Are you sure you want to release this Pokémon? This action cannot be undone!';
+    releasePokemonName.textContent = pokemonName;
+    releaseModal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Remove previous listeners to prevent duplicates
+    if (releaseModal.confirmHandler) {
+        confirmBtn.removeEventListener('click', releaseModal.confirmHandler);
+    }
+    if (releaseModal.cancelHandler) {
+        cancelBtn.removeEventListener('click', releaseModal.cancelHandler);
+    }
+    if (releaseModal.outsideClickHandler) {
+        releaseModal.removeEventListener('click', releaseModal.outsideClickHandler);
     }
     
-    try {
-        const response = await fetch(`/api/pokemon/${pokemonId}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            loadPokedex();
-            showCatchNotification('Pokémon released!', 'It has returned to the wild safely.');
-        } else {
-            const errorData = await response.json();
-            alert(errorData.error || 'Failed to release Pokémon');
+    // Define handlers
+    const confirmHandler = async () => {
+        try {
+            console.log(`Sending DELETE request for Pokémon ID: ${pokemonId}`);
+            const response = await fetch(`/api/pokemon/${pokemonId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                loadPokedex();
+                showCatchNotification('Pokémon released!', `${pokemonName} has returned to the wild safely.`);
+                closeReleaseModal();
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to release Pokémon:', {
+                    pokemonId,
+                    status: response.status,
+                    error: errorData.error
+                });
+                alert(`Failed to release Pokémon: ${errorData.error || 'Unknown server error'}`);
+            }
+        } catch (error) {
+            console.error('Network error releasing Pokémon:', {
+                pokemonId,
+                error: error.message
+            });
+            alert(`Network error releasing Pokémon: ${error.message}`);
         }
-    } catch (error) {
-        console.error('Error releasing Pokémon:', error);
-        alert('Error releasing Pokémon');
+    };
+    
+    const cancelHandler = () => closeReleaseModal();
+    
+    const outsideClickHandler = (event) => {
+        if (event.target === releaseModal) {
+            closeReleaseModal();
+        }
+    };
+    
+    // Attach listeners and store handlers on the modal element
+    confirmBtn.addEventListener('click', confirmHandler);
+    cancelBtn.addEventListener('click', cancelHandler);
+    releaseModal.addEventListener('click', outsideClickHandler);
+    
+    releaseModal.confirmHandler = confirmHandler;
+    releaseModal.cancelHandler = cancelHandler;
+    releaseModal.outsideClickHandler = outsideClickHandler;
+}
+
+function closeReleaseModal() {
+    const releaseModal = document.getElementById('release-modal');
+    const confirmBtn = document.querySelector('.confirm-release-btn');
+    const cancelBtn = document.querySelector('.cancel-release-btn');
+    
+    releaseModal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+    
+    // Remove event listeners
+    if (releaseModal.confirmHandler) {
+        confirmBtn.removeEventListener('click', releaseModal.confirmHandler);
+        delete releaseModal.confirmHandler;
+    }
+    if (releaseModal.cancelHandler) {
+        cancelBtn.removeEventListener('click', releaseModal.cancelHandler);
+        delete releaseModal.cancelHandler;
+    }
+    if (releaseModal.outsideClickHandler) {
+        releaseModal.removeEventListener('click', releaseModal.outsideClickHandler);
+        delete releaseModal.outsideClickHandler;
     }
 }
 
