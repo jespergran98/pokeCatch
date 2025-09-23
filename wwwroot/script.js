@@ -1,17 +1,3 @@
-// Pokemon data - simplified list for the game
-const pokemonList = [
-    { name: 'Pikachu', type: 'Electric', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png' },
-    { name: 'Charmander', type: 'Fire', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png' },
-    { name: 'Squirtle', type: 'Water', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png' },
-    { name: 'Bulbasaur', type: 'Grass', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png' },
-    { name: 'Jigglypuff', type: 'Fairy', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/39.png' },
-    { name: 'Psyduck', type: 'Water', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/54.png' },
-    { name: 'Meowth', type: 'Normal', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/52.png' },
-    { name: 'Snorlax', type: 'Normal', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/143.png' },
-    { name: 'Eevee', type: 'Normal', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/133.png' },
-    { name: 'Magikarp', type: 'Water', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/129.png' }
-];
-
 // Game state
 let caughtPokemon = [];
 let spawnInterval;
@@ -58,26 +44,71 @@ function startPokemonSpawning() {
     }, 2000);
 }
 
-function spawnRandomPokemon() {
-    const pokemon = pokemonList[Math.floor(Math.random() * pokemonList.length)];
-    const sprite = document.createElement('div');
-    
-    sprite.className = 'pokemon-sprite';
-    sprite.style.backgroundImage = `url(${pokemon.image})`;
-    sprite.style.left = Math.random() * (window.innerWidth - 100) + 'px';
-    sprite.style.top = Math.random() * (window.innerHeight - 200) + 100 + 'px';
-    
-    // Add click event to catch pokemon
-    sprite.addEventListener('click', () => catchPokemon(pokemon, sprite));
-    
-    gameArea.appendChild(sprite);
-    
-    // Remove sprite after 8 seconds if not caught
-    setTimeout(() => {
-        if (sprite.parentNode) {
-            sprite.remove();
+// Function to get random Pokemon from PokéAPI
+async function getRandomPokemon() {
+    try {
+        // There are about 1025 Pokemon as of Gen 9, so we'll use that range
+        const randomId = Math.floor(Math.random() * 1025) + 1;
+        
+        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch Pokemon data');
         }
-    }, 8000);
+        
+        const pokemonData = await response.json();
+        
+        // Get the primary type (first type in the array)
+        const primaryType = pokemonData.types[0].type.name;
+        
+        // Capitalize first letter
+        const formattedName = pokemonData.name.charAt(0).toUpperCase() + pokemonData.name.slice(1);
+        const formattedType = primaryType.charAt(0).toUpperCase() + primaryType.slice(1);
+        
+        return {
+            name: formattedName,
+            type: formattedType,
+            image: pokemonData.sprites.front_default || pokemonData.sprites.front_shiny
+        };
+    } catch (error) {
+        console.error('Error fetching random Pokemon:', error);
+        // Fallback to a basic Pokemon if API fails
+        return {
+            name: 'Pikachu',
+            type: 'Electric',
+            image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png'
+        };
+    }
+}
+
+async function spawnRandomPokemon() {
+    try {
+        const pokemon = await getRandomPokemon();
+        const sprite = document.createElement('div');
+        
+        sprite.className = 'pokemon-sprite';
+        sprite.style.backgroundImage = `url(${pokemon.image})`;
+        
+        // Get viewport dimensions for better positioning
+        const maxX = Math.max(window.innerWidth - 100, 100);
+        const maxY = Math.max(window.innerHeight - 200, 200);
+        
+        sprite.style.left = Math.random() * maxX + 'px';
+        sprite.style.top = (Math.random() * (maxY - 200)) + 150 + 'px';
+        
+        // Add click event to catch pokemon
+        sprite.addEventListener('click', () => catchPokemon(pokemon, sprite));
+        
+        gameArea.appendChild(sprite);
+        
+        // Remove sprite after 8 seconds if not caught
+        setTimeout(() => {
+            if (sprite.parentNode) {
+                sprite.remove();
+            }
+        }, 8000);
+    } catch (error) {
+        console.error('Error spawning Pokemon:', error);
+    }
 }
 
 async function catchPokemon(pokemon, sprite) {
@@ -106,9 +137,11 @@ async function catchPokemon(pokemon, sprite) {
             }, 500);
         } else {
             console.error('Failed to catch Pokemon');
+            sprite.classList.remove('catching');
         }
     } catch (error) {
         console.error('Error catching Pokemon:', error);
+        sprite.classList.remove('catching');
     }
 }
 
@@ -155,7 +188,10 @@ function displayPokedex() {
     pokedexList.innerHTML = '';
     
     if (caughtPokemon.length === 0) {
-        pokedexList.innerHTML = '<p style="text-align: center; color: #7f8c8d; grid-column: 1/-1;">No Pokemon caught yet! Go catch some!</p>';
+        const message = currentFilter === 'favorites' ? 
+            'No favorite Pokemon yet! Mark some as favorites!' : 
+            'No Pokemon caught yet! Go catch some!';
+        pokedexList.innerHTML = `<p style="text-align: center; color: #7f8c8d; grid-column: 1/-1;">${message}</p>`;
         return;
     }
     
@@ -168,7 +204,13 @@ function displayPokedex() {
 function createPokemonCard(pokemon) {
     const card = document.createElement('div');
     card.className = `pokemon-card ${pokemon.isFavorite ? 'favorite' : ''}`;
+    
+    const imageUrl = pokemon.imageUrl || 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png';
+    
     card.innerHTML = `
+        <div class="pokemon-image">
+            <img src="${imageUrl}" alt="${pokemon.name}" style="width: 64px; height: 64px;">
+        </div>
         <div class="pokemon-header">
             <div class="pokemon-name" id="name-${pokemon.id}">${pokemon.name}</div>
             <button class="favorite-btn" onclick="toggleFavorite(${pokemon.id})">
@@ -204,14 +246,16 @@ function editPokemonName(pokemonId) {
     const currentName = nameElement.textContent;
     
     nameElement.innerHTML = `
-        <input type="text" value="${currentName}" id="input-${pokemonId}" style="width: 100%;">
+        <input type="text" value="${currentName}" id="input-${pokemonId}" style="width: 100%; font-size: inherit; padding: 2px;">
         <div style="margin-top: 5px;">
             <button class="action-btn save-btn" onclick="savePokemonName(${pokemonId})">Save</button>
             <button class="action-btn cancel-btn" onclick="cancelEdit(${pokemonId}, '${currentName}')">Cancel</button>
         </div>
     `;
     
-    document.getElementById(`input-${pokemonId}`).focus();
+    const input = document.getElementById(`input-${pokemonId}`);
+    input.focus();
+    input.select();
 }
 
 async function savePokemonName(pokemonId) {
@@ -235,7 +279,8 @@ async function savePokemonName(pokemonId) {
         if (response.ok) {
             loadPokedex();
         } else {
-            alert('Failed to update name');
+            const errorData = await response.json();
+            alert(errorData.error || 'Failed to update name');
         }
     } catch (error) {
         console.error('Error updating name:', error);
@@ -260,9 +305,13 @@ async function deletePokemon(pokemonId) {
         
         if (response.ok) {
             loadPokedex();
+        } else {
+            const errorData = await response.json();
+            alert(errorData.error || 'Failed to release Pokemon');
         }
     } catch (error) {
-        console.error('Error deleting Pokemon:', error);
+        console.error('Error releasing Pokemon:', error);
+        alert('Error releasing Pokemon');
     }
 }
 
