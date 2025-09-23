@@ -1,6 +1,6 @@
 // Sound management for Pokémon game
 class PokemonSoundManager {
-    constructor(masterVolume = 0.1) { // Lowered master volume by default
+    constructor(masterVolume = 0.3) { // Lowered master volume by default
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.sounds = new Map();
         this.isMuted = false;
@@ -60,7 +60,7 @@ class PokemonSoundManager {
     
         // Create a new gain node specifically for the Pokémon cry
         const cryGain = this.audioContext.createGain();
-        cryGain.gain.value = 0.5; // You can adjust this value (e.g., from 0.1 to 1.0) to your preference.
+        cryGain.gain.value = 0.1; // You can adjust this value (e.g., from 0.1 to 1.0) to your preference.
         
         // Connect the cry to its new gain node, and then to the master gain
         source.connect(cryGain);
@@ -78,40 +78,89 @@ class PokemonSoundManager {
         const source = this.audioContext.createBufferSource();
         const gainNode = this.audioContext.createGain();
         
-        // Create simple waveforms for different UI interactions with much lower volumes
+        // Improved UI sounds with more pleasant tones and better envelopes
         switch (type) {
             case 'pokedex_open':
-                source.buffer = this.createTone(440, 0.2, 'sine');
-                gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime); // Was 0.3
+                source.buffer = this.createGentleSweep(300, 600, 0.3, 'sine');
+                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
                 break;
             case 'pokedex_close':
-                source.buffer = this.createTone(392, 0.2, 'sine');
-                gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime); // Was 0.3
+                source.buffer = this.createGentleSweep(600, 300, 0.3, 'sine');
+                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
                 break;
             case 'hover':
-                source.buffer = this.createTone(880, 0.1, 'triangle');
-                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);  // Was 0.2
+                source.buffer = this.createTone(800, 0.08, 'sine', 0.1);
+                gainNode.gain.setValueAtTime(0.08, this.audioContext.currentTime);
                 break;
             case 'click':
-                source.buffer = this.createTone(660, 0.1, 'square');
-                gainNode.gain.setValueAtTime(0.12, this.audioContext.currentTime); // Was 0.25
+                source.buffer = this.createClickSound(600, 0.1);
+                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
                 break;
             case 'catch_success':
-                source.buffer = this.createTone(523.25, 0.3, 'sine');
-                gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);  // Was 0.4
+                source.buffer = this.createSuccessFanfare();
+                gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime);
+                break;
+            case 'notification':
+                source.buffer = this.createTone(784, 0.15, 'sine', 0.2); // G5 note
+                gainNode.gain.setValueAtTime(0.12, this.audioContext.currentTime);
                 break;
             default:
                 return;
         }
 
         source.connect(gainNode);
-        // Connect the specific UI sound to the master gain
         gainNode.connect(this.masterGain);
         source.start(0);
     }
 
-    // Create a simple tone for UI interactions
-    createTone(frequency, duration, type) {
+    // Create a gentle frequency sweep (up or down)
+    createGentleSweep(startFreq, endFreq, duration, waveType = 'sine') {
+        const sampleRate = this.audioContext.sampleRate;
+        const buffer = this.audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < buffer.length; i++) {
+            const t = i / sampleRate;
+            const progress = i / buffer.length;
+            const currentFreq = startFreq + (endFreq - startFreq) * progress;
+            
+            switch (waveType) {
+                case 'sine':
+                    data[i] = Math.sin(2 * Math.PI * currentFreq * t);
+                    break;
+                case 'triangle':
+                    data[i] = 2 * Math.abs(2 * (t * currentFreq - Math.floor(t * currentFreq + 0.5))) - 1;
+                    break;
+            }
+            
+            // Gentle envelope with quick attack and slow release
+            const envelope = Math.min(1, Math.sin(Math.PI * progress) * 1.5);
+            data[i] *= envelope * 0.3;
+        }
+
+        return buffer;
+    }
+
+    // Create a pleasant click sound with a short attack
+    createClickSound(frequency, duration) {
+        const sampleRate = this.audioContext.sampleRate;
+        const buffer = this.audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < buffer.length; i++) {
+            const t = i / sampleRate;
+            data[i] = Math.sin(2 * Math.PI * frequency * t);
+            
+            // Very quick attack, immediate decay
+            const envelope = Math.exp(-t * 20);
+            data[i] *= envelope * 0.4;
+        }
+
+        return buffer;
+    }
+
+    // Create a simple tone with customizable fade
+    createTone(frequency, duration, type, fadeDuration = 0.05) {
         const sampleRate = this.audioContext.sampleRate;
         const buffer = this.audioContext.createBuffer(1, sampleRate * duration, sampleRate);
         const data = buffer.getChannelData(0);
@@ -123,15 +172,57 @@ class PokemonSoundManager {
                     data[i] = Math.sin(2 * Math.PI * frequency * t);
                     break;
                 case 'square':
-                    data[i] = Math.sin(2 * Math.PI * frequency * t) > 0 ? 1 : -1;
+                    data[i] = Math.sin(2 * Math.PI * frequency * t) > 0 ? 0.5 : -0.5;
                     break;
                 case 'triangle':
                     data[i] = 2 * Math.abs(2 * (t * frequency - Math.floor(t * frequency + 0.5))) - 1;
                     break;
             }
-            // Apply envelope (fade in/out)
-            const envelope = Math.sin(Math.PI * i / buffer.length);
-            data[i] *= envelope * 0.5;
+            
+            // Improved envelope with customizable fade
+            const fadeSamples = fadeDuration * sampleRate;
+            let envelope = 1;
+            
+            if (i < fadeSamples) {
+                envelope = i / fadeSamples; // Fade in
+            } else if (i > buffer.length - fadeSamples) {
+                envelope = (buffer.length - i) / fadeSamples; // Fade out
+            }
+            
+            data[i] *= envelope * 0.3;
+        }
+
+        return buffer;
+    }
+
+    // Create a simple success fanfare (two ascending tones)
+    createSuccessFanfare() {
+        const duration = 0.6;
+        const sampleRate = this.audioContext.sampleRate;
+        const buffer = this.audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < buffer.length; i++) {
+            const t = i / sampleRate;
+            const progress = i / buffer.length;
+            
+            // Two tones: first at 523Hz (C5), second at 784Hz (G5)
+            const toneSplit = 0.4;
+            let frequency = progress < toneSplit ? 523.25 : 784.00;
+            
+            // Adjust time for the second tone
+            const toneTime = progress < toneSplit ? t : t - toneSplit * duration;
+            data[i] = Math.sin(2 * Math.PI * frequency * toneTime);
+            
+            // Envelope with peaks at tone transitions
+            let envelope;
+            if (progress < toneSplit) {
+                envelope = Math.sin(Math.PI * progress / toneSplit);
+            } else {
+                envelope = Math.sin(Math.PI * (progress - toneSplit) / (1 - toneSplit));
+            }
+            
+            data[i] *= envelope * 0.4;
         }
 
         return buffer;
@@ -140,13 +231,12 @@ class PokemonSoundManager {
     // Toggle mute state
     toggleMute() {
         this.isMuted = !this.isMuted;
-        // Mute by setting master volume to 0, and restore it when unmuting
         this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.volume, this.audioContext.currentTime);
         return this.isMuted;
     }
 }
 
-// Initialize sound manager (with the new default low volume)
+// Initialize sound manager
 const soundManager = new PokemonSoundManager();
 
 // Modify existing event listeners to include sounds
@@ -172,10 +262,14 @@ document.addEventListener('DOMContentLoaded', function() {
         soundManager.playUISound('pokedex_close');
     });
 
-    // Add hover sounds to Pokémon cards
+    // Add hover sounds to Pokémon cards (with debounce to prevent spam)
+    let hoverTimeout;
     pokedexList.addEventListener('mouseover', function(event) {
         if (event.target.closest('.pokemon-card')) {
-            soundManager.playUISound('hover');
+            clearTimeout(hoverTimeout);
+            hoverTimeout = setTimeout(() => {
+                soundManager.playUISound('hover');
+            }, 50);
         }
     });
 
@@ -200,30 +294,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add sound to search input
+    // Add notification sound to search input (on first interaction)
     if (searchInput) {
+        let firstInteraction = true;
         searchInput.addEventListener('input', () => {
-            soundManager.playUISound('click');
+            if (firstInteraction) {
+                soundManager.playUISound('notification');
+                firstInteraction = false;
+            } else {
+                soundManager.playUISound('click');
+            }
         });
     }
     
-    // Override the catchPokemon function to add sound effects.
-    // NOTE: This requires the original `catchPokemon` function from `script.js` to be
-    // globally accessible (e.g., by adding `window.catchPokemon = catchPokemon;`).
+    // Override the catchPokemon function to add sound effects
     const originalCatchPokemon = window.catchPokemon;
     if (typeof originalCatchPokemon === 'function') {
         window.catchPokemon = async function(pokemon, sprite) {
-            // Play the Pokémon's cry and a success sound when the catch is initiated.
+            // Play success sound and Pokémon cry
             soundManager.playUISound('catch_success');
             if (pokemon && pokemon.collectorNumber) {
                 await soundManager.playPokemonCry(pokemon.collectorNumber);
             }
             
-            // Call the original function to handle the rest of the catch logic.
             await originalCatchPokemon(pokemon, sprite);
         };
     } else {
-        console.warn("`window.catchPokemon` was not found. Catch sound effects will not play. Ensure the `catchPokemon` function is globally accessible in `script.js`.");
+        console.warn("`window.catchPokemon` was not found. Catch sound effects will not play.");
     }
 });
 
