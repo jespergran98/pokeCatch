@@ -787,7 +787,7 @@ function updatePokemonTypeColors() {
         .pokemon-sprite::before {
             content: '';
             position: absolute;
-            bottom: -15px;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             width: 80px;

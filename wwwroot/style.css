@@ -152,24 +152,39 @@ body {
 
 .tree {
     position: absolute;
-    width: 80px;
-    height: 120px;
+    width: 100px;
+    height: 140px;
     background: 
-        radial-gradient(ellipse at 50% 25%, #228b22 45%, transparent 45%),
-        radial-gradient(ellipse at 30% 35%, #32cd32 40%, transparent 40%),
-        radial-gradient(ellipse at 70% 35%, #228b22 40%, transparent 40%),
-        linear-gradient(0deg, #8b4513 0%, #8b4513 45%, transparent 45%);
-    background-size: 65px 65px, 55px 55px, 55px 55px, 18px 85px;
-    background-position: center 15px, center 20px, center 20px, center bottom;
+        /* Foliage layers */
+        radial-gradient(ellipse at 50% 20%, #2e8b57 50%, transparent 55%), /* Main canopy */
+        radial-gradient(ellipse at 35% 30%, #32cd32 45%, transparent 50%), /* Left foliage */
+        radial-gradient(ellipse at 65% 30%, #228b22 45%, transparent 50%), /* Right foliage */
+        radial-gradient(ellipse at 50% 35%, #2e8b57 40%, transparent 45%), /* Lower foliage, moved up */
+        linear-gradient(0deg, #6b3e26 0%, #6b3e26 55%, transparent 55%); /* Trunk extended further */
+    background-size: 
+        80px 80px, /* Main canopy */
+        60px 60px, /* Left foliage */
+        60px 60px, /* Right foliage */
+        50px 50px, /* Lower foliage */
+        20px 110px; /* Taller trunk */
+    background-position: 
+        center 10px, 
+        35% 25px, 
+        65% 25px, 
+        center 35px, /* Lower foliage moved up */
+        center bottom; /* Trunk at bottom */
     background-repeat: no-repeat;
-    opacity: 0.7;
-    animation: treeWave 6s ease-in-out infinite;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    opacity: 0.85;
+    transform-origin: bottom center;
+    animation: treeWave 4s ease-in-out infinite;
 }
 
 @keyframes treeWave {
-    0%, 100% { transform: rotate(0deg); }
-    33% { transform: rotate(1deg); }
-    66% { transform: rotate(-1deg); }
+    0%, 100% { transform: rotate(0deg) translateY(0); }
+    25% { transform: rotate(1.5deg) translateY(-1px); }
+    50% { transform: rotate(0deg) translateY(0); }
+    75% { transform: rotate(-1.5deg) translateY(-1px); }
 }
 
 /* Enhanced Grass Patches */
@@ -269,7 +284,7 @@ body {
 .pokemon-sprite::before {
     content: '';
     position: absolute;
-    bottom: -12px;
+    bottom: -8px;
     left: 50%;
     transform: translateX(-50%);
     width: 60px;
@@ -1075,6 +1090,15 @@ body {
     filter: brightness(1.1);
 }
 
+.pokemon-card .save-btn {
+    min-width: 80px;
+}
+
+.pokemon-card.list-view .action-btn.edit-btn,
+.pokemon-card.list-view .action-btn.delete-btn {
+    min-width: 80px;
+}
+
 /* List View Styles */
 .pokemon-card.list-view {
     display: flex;
@@ -1286,8 +1310,8 @@ body {
     .small-patch { width: 60px; height: 60px; }
     
     .pokemon-sprite {
-        width: 80px;
-        height: 80px;
+        width: 120px;
+        height: 120px;
     }
     
     .pokedex-container {
