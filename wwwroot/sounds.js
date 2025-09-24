@@ -1,6 +1,6 @@
 // Sound management for Pokémon game
 class PokemonSoundManager {
-    constructor(masterVolume = 0.3) { // Lowered master volume by default
+    constructor(masterVolume = 0.4) { // Lowered master volume by default
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.sounds = new Map();
         this.isMuted = false;
