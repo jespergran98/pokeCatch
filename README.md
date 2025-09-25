@@ -73,3 +73,26 @@ pokeCatch/
 ## Next Steps
 
 Create the frontend files in the `wwwroot` folder to complete the application.
+
+
+## Understanding the Backend Code Structure: A Beginner's Guide
+
+If you're new to backend development with ASP.NET Core, here's a simple explanation of why the code is organized this way. Think of the app like a Pokémon gym: It needs rules for Pokémon (data), trainers to manage them (logic), and a front desk to handle visitors (web setup). We split files into folders to keep everything tidy and easy to maintain—like sorting your Poké Balls!
+
+### Why Folders and Splitting Files?
+- **Separation of Concerns**: Each part does one job well. This makes the code easier to read, fix bugs in, or add features to. For example, if you want to store Pokémon in a real database instead of memory, you only change one folder.
+- **Scalability**: As your app grows (e.g., adding battles or trading), you can add more files without messing up the existing ones.
+- **Best Practices**: This follows common C# patterns like "dependency injection" (letting parts "plug in" to each other) for flexible code.
+
+### Key Folders and Files Explained
+- **Models/ Folder**: This is where we define what a Pokémon "looks like" in code—like its name, type, and if it's a favorite. 
+  - **Pokemon.cs**: Contains classes for Pokémon data and request formats (e.g., what info you send when catching one). It's just blueprints—no actions happen here. Location: In `Models/` because it's all about data shapes, separate from logic.
+
+- **Services/ Folder**: This handles the "work" like catching, renaming, or listing Pokémon. It's the manager that stores and updates your Pokédex.
+  - **IPokemonService.cs**: A "contract" listing what operations must be available (e.g., "CatchPokemon"). It's like a to-do list without the how-to.
+  - **PokemonService.cs**: The actual code that does the work, using an in-memory list to store Pokémon. It implements the contract above. Location: In `Services/` to group business logic together, away from data or web stuff.
+
+- **Root Folder**:
+  - **Program.cs**: The main starter file. It sets up the web server, connects the services, and defines API endpoints (like URLs for getting Pokémon). It's the glue that makes everything run and respond to web requests. Location: In the root because it's the entry point—your app starts here!
+
+In summary, Models are the "what" (data), Services are the "how" (logic), and Program.cs is the "where" (web handling). This setup keeps your code organized like a well-stocked Pokédex—ready for adventure!
